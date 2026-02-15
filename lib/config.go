@@ -18,8 +18,9 @@ type Config struct {
 			Key  string `yaml:"key"`
 		} `yaml:"tls"`
 		Paths struct {
-			Upload string `yaml:"upload"`
-			Files  string `yaml:"files"`
+			Upload   string `yaml:"upload"`
+			Files    string `yaml:"files"`
+			FilesURL string `yaml:"files-url"`
 		} `yaml:"paths"`
 	} `yaml:"server"`
 

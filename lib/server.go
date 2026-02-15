@@ -307,10 +307,19 @@ func (s *Server) handlePost(w http.ResponseWriter, r *http.Request) {
 
 	// Construct the file URL
 	var fileURL string
-	if ext != "" {
-		fileURL = s.config.Server.Paths.Files + "/" + fileID + ext
+	var basePath string
+
+	// Use external files URL if configured, otherwise use local path
+	if s.config.Server.Paths.FilesURL != "" {
+		basePath = s.config.Server.Paths.FilesURL
 	} else {
-		fileURL = s.config.Server.Paths.Files + "/" + fileID
+		basePath = s.config.Server.Paths.Files
+	}
+
+	if ext != "" {
+		fileURL = basePath + "/" + fileID + ext
+	} else {
+		fileURL = basePath + "/" + fileID
 	}
 
 	// Return 201 Created with Location header

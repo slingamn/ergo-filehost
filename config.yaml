@@ -13,6 +13,8 @@ server:
         upload: "/upload"
         # GET or HEAD endpoint to access uploaded files
         files: "/files"
+        # to serve the files with nginx or similar:
+        #files-url: "https://example.com/files"
 
 directory: "/path/to/storage"
 
