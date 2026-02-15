@@ -18,6 +18,9 @@ import (
 	"time"
 )
 
+// HTTP client for API requests with 10 second timeout
+var httpClient = &http.Client{Timeout: 10 * time.Second}
+
 type Server struct {
 	config  *Config
 	storage *Storage
@@ -211,8 +214,7 @@ func (s *Server) checkBasicAuth(username, password string) bool {
 	req.Header.Set("Authorization", "Bearer "+s.config.Ergo.BearerToken)
 
 	// Send request
-	client := &http.Client{Timeout: 10 * time.Second}
-	resp, err := client.Do(req)
+	resp, err := httpClient.Do(req)
 	if err != nil {
 		s.logger.Printf("Error sending auth request: %v", err)
 		return false
