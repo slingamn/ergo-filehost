@@ -1,0 +1,30 @@
+server:
+    listen-address: ":8098"
+    # for unix domain:
+    # listen-address: "unix:/path/to/sock"
+
+    # comment these out for plaintext (if you're using a reverse proxy for TLS termination)
+    tls:
+        cert: "fullchain.pem"
+        key:  "privkey.pem"
+
+    paths:
+        # POST upload endpoint
+        upload: "/upload"
+        # GET or HEAD endpoint to access uploaded files
+        files: "/files"
+
+directory: "/path/to/storage"
+
+limits:
+    expiration: 60d
+    # max file size in bytes (0 or missing means no limit)
+    # examples: 10485760 (10 MB), 104857600 (100 MB), 1073741824 (1 GB)
+    max-file-size: 0
+
+ergo:
+    api-url: "http://127.0.0.1:8089"
+    bearer-token: "example"
+
+# error, warn, info, debug
+logging: debug
