@@ -7,6 +7,7 @@ import (
 	"bytes"
 	"crypto/tls"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
 	"io"
 	"log"
@@ -152,6 +153,22 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 
 // authenticate validates credentials and returns the username, or an empty string on failure
 func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) (string, bool) {
+	// Try client certificate authentication first (no Authorization header needed)
+	if certfp, peerCerts, err := GetCertFP(r); err == nil && certfp != "" {
+		certAuth := APIInput{
+			Certfp:    certfp,
+			PeerCerts: make([]string, len(peerCerts)),
+		}
+		for i, cert := range peerCerts {
+			certAuth.PeerCerts[i] = string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw}))
+		}
+		ok, accountName := s.checkErgoAuth(certAuth)
+		if ok {
+			return accountName, true
+		}
+		// cert present but not recognized — fall through to try other auth methods
+	}
+
 	// Parse Authorization header
 	authHeader := r.Header.Get("Authorization")
 	if authHeader == "" {
@@ -171,14 +188,19 @@ func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) (string, b
 		}
 
 		// Validate credentials against Ergo API
-		if !s.checkBasicAuth(username, password) {
+		basicAuth := APIInput{
+			AccountName: username,
+			Passphrase:  password,
+		}
+		ok, accountName := s.checkErgoAuth(basicAuth)
+		if !ok {
 			w.Header().Set("WWW-Authenticate", `Basic realm="filehost"`)
 			http.Error(w, "Invalid credentials", http.StatusUnauthorized)
 			return "", false
 		}
 
 		// Authentication successful
-		return username, true
+		return accountName, true
 	}
 
 	// Check if it's Bearer authentication (for SASL OAUTHBEARER)
@@ -196,17 +218,28 @@ func (s *Server) authenticate(w http.ResponseWriter, r *http.Request) (string, b
 	return "", false
 }
 
+type APIInput struct {
+	AccountName string   `json:"accountName,omitempty"`
+	Passphrase  string   `json:"passphrase,omitempty"`
+	Certfp      string   `json:"certfp,omitempty"`
+	PeerCerts   []string `json:"peerCerts,omitempty"`
+	IP          string   `json:"ip,omitempty"`
+	//OAuthBearer *oauth2.OAuthBearerOptions `json:"oauth2,omitempty"`
+}
+
+type APIOutput struct {
+	AccountName string `json:"accountName"`
+	Success     bool   `json:"success"`
+	Error       string `json:"error"`
+}
+
 // checkBasicAuth validates username and password against the Ergo API
-func (s *Server) checkBasicAuth(username, password string) bool {
+func (s *Server) checkErgoAuth(apiRequest APIInput) (bool, string) {
 	// Prepare request body
-	reqBody := map[string]string{
-		"accountName": username,
-		"passphrase":  password,
-	}
-	reqJSON, err := json.Marshal(reqBody)
+	reqJSON, err := json.Marshal(apiRequest)
 	if err != nil {
 		s.logger.Printf("Error marshaling auth request: %v", err)
-		return false
+		return false, ""
 	}
 
 	// Make request to Ergo API
@@ -214,7 +247,7 @@ func (s *Server) checkBasicAuth(username, password string) bool {
 	req, err := http.NewRequest("POST", apiURL, bytes.NewReader(reqJSON))
 	if err != nil {
 		s.logger.Printf("Error creating auth request: %v", err)
-		return false
+		return false, ""
 	}
 
 	// Set headers
@@ -225,33 +258,30 @@ func (s *Server) checkBasicAuth(username, password string) bool {
 	resp, err := httpClient.Do(req)
 	if err != nil {
 		s.logger.Printf("Error sending auth request: %v", err)
-		return false
+		return false, ""
 	}
 	defer resp.Body.Close()
 
 	// Check HTTP status code
 	if resp.StatusCode != http.StatusOK {
 		s.logger.Printf("Auth API returned non-200 status: %d", resp.StatusCode)
-		return false
+		return false, ""
 	}
 
 	// Parse response
-	var result struct {
-		Success     bool   `json:"success"`
-		AccountName string `json:"accountName,omitempty"`
-	}
+	var result APIOutput
 	if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
 		s.logger.Printf("Error decoding auth response: %v", err)
-		return false
+		return false, ""
 	}
 
 	if result.Success {
 		s.logger.Printf("Authentication successful for user: %s", result.AccountName)
 	} else {
-		s.logger.Printf("Authentication failed for user: %s", username)
+		s.logger.Printf("Authentication failed for user: %s", apiRequest.AccountName)
 	}
 
-	return result.Success
+	return result.Success, result.AccountName
 }
 
 // handleUpload handles both OPTIONS and POST requests to the upload endpoint
