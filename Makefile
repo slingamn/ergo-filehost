@@ -30,6 +30,7 @@ install:
 # Run tests
 test:
 	go test -v ./...
+	go vet ./...
 
 # Build for multiple platforms
 release:
