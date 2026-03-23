@@ -5,6 +5,7 @@ package lib
 
 import (
 	"bytes"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -99,7 +100,14 @@ func (s *Server) Run() {
 	// Start server with or without TLS
 	if s.config.Server.TLS != nil {
 		s.logger.Println("Using TLS")
-		err = server.ServeTLS(listener, s.config.Server.TLS.Cert, s.config.Server.TLS.Key)
+		var certStore AutoreloadingCertStore
+		if err = certStore.Initialize(s.config.Server.TLS.Cert, s.config.Server.TLS.Key, time.Minute); err != nil {
+			s.logger.Fatal("TLS load error: ", err)
+		}
+		tlsConfig := certStore.TLSConfig()
+		tlsConfig.ClientAuth = tls.RequestClientCert
+		tlsListener := tls.NewListener(listener, tlsConfig)
+		err = server.Serve(tlsListener)
 	} else {
 		s.logger.Println("Using plaintext (no TLS)")
 		err = server.Serve(listener)
@@ -415,7 +423,7 @@ func isValidFileID(s string) bool {
 	// Check valid base64url characters (A-Z, a-z, 0-9, -, _)
 	for _, c := range s {
 		if !((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') ||
-		     (c >= '0' && c <= '9') || c == '-' || c == '_') {
+			(c >= '0' && c <= '9') || c == '-' || c == '_') {
 			return false
 		}
 	}
