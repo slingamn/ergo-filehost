@@ -32,7 +32,7 @@ type Server struct {
 }
 
 func NewServer(config *Config, commit, version string) (*Server, error) {
-	storage, err := NewStorage(config.Directory)
+	storage, err := NewStorage(config.Directory, config.StripExifMetadata)
 	if err != nil {
 		return nil, err
 	}
