@@ -22,10 +22,10 @@ func runStripExifMetadata(filePath, ext string) error {
 		return nil
 	}
 	out, err := exec.Command("exiftool",
-		"-exif:all=",
-		"-iptc:all=",
-		"-xmp:all=",
-		"-P",
+		"-exif:all=", // clear all EXIF tags (GPS, camera, timestamps, etc.)
+		"-iptc:all=", // clear all IPTC tags (caption, keywords, copyright, etc.)
+		"-xmp:all=",  // clear all XMP tags (Adobe metadata, Lightroom edits, etc.)
+		"-P",         // preserve file modification timestamp
 		"-overwrite_original",
 		"--",
 		filePath,
