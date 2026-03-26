@@ -27,10 +27,10 @@ type FileMetadata struct {
 }
 
 type Storage struct {
-	baseDir            string
-	filesDir           string
-	metadataDir        string
-	tmpDir             string
+	baseDir           string
+	filesDir          string
+	metadataDir       string
+	tmpDir            string
 	stripExifMetadata bool
 }
 
@@ -60,10 +60,10 @@ func NewStorage(baseDir string, stripExifMetadata bool) (*Storage, error) {
 	}
 
 	return &Storage{
-		baseDir:            baseDir,
-		filesDir:           filesDir,
-		metadataDir:        metadataDir,
-		tmpDir:             tmpDir,
+		baseDir:           baseDir,
+		filesDir:          filesDir,
+		metadataDir:       metadataDir,
+		tmpDir:            tmpDir,
 		stripExifMetadata: stripExifMetadata,
 	}, nil
 }
