@@ -50,6 +50,10 @@ func NewServer(config *Config, commit, version string) (*Server, error) {
 }
 
 func (s *Server) Run() {
+	if slices.Contains(s.config.CORSAllowedOrigins, "*") {
+		s.logger.Fatal("cors-allowed-origins contains \"*\", which browsers reject when credentials are enabled; use specific origins instead")
+	}
+
 	// Start cleanup goroutine if expiration is configured
 	expiration := time.Duration(s.config.Limits.Expiration)
 	if expiration > 0 {
@@ -57,10 +61,6 @@ func (s *Server) Run() {
 		s.logger.Printf("Started cleanup job (expiration: %v, interval: 1h)", expiration)
 	} else {
 		s.logger.Println("File expiration disabled (no cleanup job)")
-	}
-
-	if slices.Contains(s.config.CORSAllowedOrigins, "*") {
-		s.logger.Fatal("cors-allowed-origins contains \"*\", which browsers reject when credentials are enabled; use specific origins instead")
 	}
 
 	mux := http.NewServeMux()
