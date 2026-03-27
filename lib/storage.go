@@ -27,12 +27,13 @@ type FileMetadata struct {
 }
 
 type Storage struct {
-	baseDir     string
-	filesDir    string
-	metadataDir string
+	baseDir           string
+	filesDir          string
+	metadataDir       string
+	stripExifMetadata bool
 }
 
-func NewStorage(baseDir string) (*Storage, error) {
+func NewStorage(baseDir string, stripExifMetadata bool) (*Storage, error) {
 	filesDir := filepath.Join(baseDir, "files")
 	metadataDir := filepath.Join(baseDir, "metadata")
 
@@ -54,9 +55,10 @@ func NewStorage(baseDir string) (*Storage, error) {
 	}
 
 	return &Storage{
-		baseDir:     baseDir,
-		filesDir:    filesDir,
-		metadataDir: metadataDir,
+		baseDir:           baseDir,
+		filesDir:          filesDir,
+		metadataDir:       metadataDir,
+		stripExifMetadata: stripExifMetadata,
 	}, nil
 }
 
@@ -127,6 +129,12 @@ func (s *Storage) StoreFile(reader io.Reader, contentType, filename, username st
 		exts, err := mime.ExtensionsByType(contentType)
 		if err == nil && len(exts) > 0 {
 			ext = exts[0]
+		}
+	}
+
+	if s.stripExifMetadata {
+		if err := runStripExifMetadata(tempPath, ext); err != nil {
+			log.Printf("StoreFile %s: strip metadata failed: %v", fileID, err)
 		}
 	}
 

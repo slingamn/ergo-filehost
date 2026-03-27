@@ -37,6 +37,8 @@ type Config struct {
 	} `yaml:"ergo"`
 
 	Logging string `yaml:"logging"`
+
+	StripExifMetadata bool `yaml:"strip-exif-metadata"`
 }
 
 func LoadConfig(filename string) (*Config, error) {
