@@ -161,21 +161,21 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		matched := false
+		origin_is_matched := false
 		for _, allowed := range s.config.CORSAllowedOrigins {
 			if allowed == "*" || allowed == origin {
-				matched = true
+				origin_is_matched = true
 				break
 			}
 		}
-		if !matched {
+		if !origin_is_matched {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Credentials", "true")
-		w.Header().Set("Access-Control-Expose-Headers", "Location") // allow location to be known
+		w.Header().Set("Access-Control-Allow-Credentials", "true") // allow sending Authorization header of browser context
+		w.Header().Set("Access-Control-Expose-Headers", "Location") // allow location to be read
 		w.Header().Add("Vary", "Origin")
 
 		if r.Method == http.MethodOptions {
