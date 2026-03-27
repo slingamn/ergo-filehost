@@ -51,7 +51,7 @@ func NewServer(config *Config, commit, version string) (*Server, error) {
 
 func (s *Server) Run() {
 	if slices.Contains(s.config.CORSAllowedOrigins, "*") {
-		s.logger.Fatal("cors-allowed-origins contains \"*\", which browsers reject when credentials are enabled; use specific origins instead")
+		s.logger.Fatal("cors-allowed-origins contains \"*\", which is not a valid configuration when sending credentials; use specific origins instead")
 	}
 
 	// Start cleanup goroutine if expiration is configured
