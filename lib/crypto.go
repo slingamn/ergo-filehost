@@ -4,12 +4,7 @@ import (
 	"crypto/sha256"
 	"crypto/x509"
 	"encoding/hex"
-	"errors"
 	"net/http"
-)
-
-var (
-	errConnNotTLS = errors.New("connection is not TLS")
 )
 
 func GetCertFP(request *http.Request) (fingerprint string, peerCerts []*x509.Certificate, err error) {
