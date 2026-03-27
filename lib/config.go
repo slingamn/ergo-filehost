@@ -36,6 +36,8 @@ type Config struct {
 		BearerToken string `yaml:"bearer-token"`
 	} `yaml:"ergo"`
 
+	CORSAllowedOrigins []string `yaml:"cors-allowed-origins"`
+
 	Logging string `yaml:"logging"`
 
 	StripExifMetadata bool `yaml:"strip-exif-metadata"`

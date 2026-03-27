@@ -25,6 +25,12 @@ limits:
     max-file-size: 0
 
 
+# Access-Control-Allow-Origin header to send for browser-based clients
+# needed for webirc if filehost domain differs from client host. 
+cors-allowed-origins:
+    # - "https://filehost.example.com"
+
+
 # strip EXIF metadata from uploaded images (jpg, jpeg, avif, heif, heic)
 # requires exiftool to be installed
 strip-exif-metadata: false
