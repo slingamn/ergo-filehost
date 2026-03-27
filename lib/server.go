@@ -160,8 +160,12 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 // case of webirc: https://ircv3.net/specs/extensions/webirc
 func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(s.config.CORSAllowedOrigins) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
 		origin := r.Header.Get("Origin")
-		if origin == "" || len(s.config.CORSAllowedOrigins) == 0 {
+		if origin == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -179,7 +183,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Credentials", "true") // allow sending Authorization header for request
+		w.Header().Set("Access-Control-Allow-Credentials", "true")  // allow sending Authorization header for request
 		w.Header().Set("Access-Control-Expose-Headers", "Location") // allow location to be read
 		w.Header().Add("Vary", "Origin")
 
