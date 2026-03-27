@@ -30,14 +30,12 @@ type Storage struct {
 	baseDir           string
 	filesDir          string
 	metadataDir       string
-	tmpDir            string
 	stripExifMetadata bool
 }
 
 func NewStorage(baseDir string, stripExifMetadata bool) (*Storage, error) {
 	filesDir := filepath.Join(baseDir, "files")
 	metadataDir := filepath.Join(baseDir, "metadata")
-	tmpDir := filepath.Join(baseDir, "tmp")
 
 	// Create directories if they don't exist
 	if err := os.MkdirAll(filesDir, 0755); err != nil {
@@ -45,9 +43,6 @@ func NewStorage(baseDir string, stripExifMetadata bool) (*Storage, error) {
 	}
 	if err := os.MkdirAll(metadataDir, 0755); err != nil {
 		return nil, fmt.Errorf("failed to create metadata directory: %w", err)
-	}
-	if err := os.MkdirAll(tmpDir, 0700); err != nil {
-		return nil, fmt.Errorf("failed to create tmp directory: %w", err)
 	}
 
 	// Create empty index.html in files directory to prevent enumeration
@@ -63,7 +58,6 @@ func NewStorage(baseDir string, stripExifMetadata bool) (*Storage, error) {
 		baseDir:           baseDir,
 		filesDir:          filesDir,
 		metadataDir:       metadataDir,
-		tmpDir:            tmpDir,
 		stripExifMetadata: stripExifMetadata,
 	}, nil
 }
@@ -81,8 +75,8 @@ func (s *Storage) StoreFile(reader io.Reader, contentType, filename, username st
 		limitedReader = io.LimitReader(reader, maxFileSize+1)
 	}
 
-	// Write file to tmp directory first without extension
-	tempPath := filepath.Join(s.tmpDir, fileID)
+	// Write the file initially without extension
+	tempPath := filepath.Join(s.filesDir, fileID)
 	outFile, err := os.Create(tempPath)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to create file: %w", err)
@@ -144,15 +138,16 @@ func (s *Storage) StoreFile(reader io.Reader, contentType, filename, username st
 		}
 	}
 
+	// Rename file if extension is needed
 	var filePath string
 	if ext != "" {
 		filePath = filepath.Join(s.filesDir, fileID+ext)
+		if err := os.Rename(tempPath, filePath); err != nil {
+			os.Remove(tempPath)
+			return "", "", fmt.Errorf("failed to rename file: %w", err)
+		}
 	} else {
-		filePath = filepath.Join(s.filesDir, fileID)
-	}
-	if err := os.Rename(tempPath, filePath); err != nil {
-		os.Remove(tempPath)
-		return "", "", fmt.Errorf("failed to move file to storage: %w", err)
+		filePath = tempPath
 	}
 
 	// Store metadata
