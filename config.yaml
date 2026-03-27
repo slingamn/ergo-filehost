@@ -25,7 +25,7 @@ limits:
     max-file-size: 0
 
 
-# Access-Control-Allow-Origin header to send for browser-based clients
+# Access-Control-Allow-Origin header to send for browser-based clients.
 # needed for webirc if filehost domain differs from client host. 
 cors-allowed-origins:
     # - "https://filehost.example.com"
