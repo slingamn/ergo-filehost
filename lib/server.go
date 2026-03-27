@@ -174,7 +174,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		}
 
 		w.Header().Set("Access-Control-Allow-Origin", origin)
-		w.Header().Set("Access-Control-Allow-Credentials", "true") // allow sending Authorization header of browser context
+		w.Header().Set("Access-Control-Allow-Credentials", "true") // allow sending Authorization header for request
 		w.Header().Set("Access-Control-Expose-Headers", "Location") // allow location to be read
 		w.Header().Add("Vary", "Origin")
 
