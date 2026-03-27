@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 )
@@ -56,6 +57,10 @@ func (s *Server) Run() {
 		s.logger.Printf("Started cleanup job (expiration: %v, interval: 1h)", expiration)
 	} else {
 		s.logger.Println("File expiration disabled (no cleanup job)")
+	}
+
+	if slices.Contains(s.config.CORSAllowedOrigins, "*") {
+		s.logger.Fatal("cors-allowed-origins contains \"*\", which browsers reject when credentials are enabled; use specific origins instead")
 	}
 
 	mux := http.NewServeMux()
@@ -163,7 +168,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 
 		origin_is_matched := false
 		for _, allowed := range s.config.CORSAllowedOrigins {
-			if allowed == "*" || allowed == origin {
+			if allowed == origin {
 				origin_is_matched = true
 				break
 			}
