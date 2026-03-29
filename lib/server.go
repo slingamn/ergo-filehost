@@ -170,14 +170,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 			return
 		}
 
-		origin_is_matched := false
-		for _, allowed := range s.config.CORSAllowedOrigins {
-			if allowed == origin {
-				origin_is_matched = true
-				break
-			}
-		}
-		if !origin_is_matched {
+		if !slices.Contains(s.config.CORSAllowedOrigins, origin) {
 			next.ServeHTTP(w, r)
 			return
 		}
