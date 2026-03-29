@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/debug"
+	"slices"
 	"strings"
 	"time"
 )
@@ -49,6 +50,10 @@ func NewServer(config *Config, commit, version string) (*Server, error) {
 }
 
 func (s *Server) Run() {
+	if slices.Contains(s.config.CORSAllowedOrigins, "*") {
+		s.logger.Fatal("cors-allowed-origins contains \"*\", which is not a valid configuration when sending credentials; use specific origins instead")
+	}
+
 	// Start cleanup goroutine if expiration is configured
 	expiration := time.Duration(s.config.Limits.Expiration)
 	if expiration > 0 {
@@ -65,8 +70,8 @@ func (s *Server) Run() {
 	mux.HandleFunc(s.config.Server.Paths.Files+"/", s.handleFiles)
 
 	// Create HTTP server with middleware chain
-	// Order: panic → logging → handlers
-	handler := s.panicMiddleware(s.loggingMiddleware(mux))
+	// Order: panic → logging → cors → handlers
+	handler := s.panicMiddleware(s.loggingMiddleware(s.corsMiddleware(mux)))
 	server := &http.Server{
 		Handler:      handler,
 		ReadTimeout:  30 * time.Second,
@@ -148,6 +153,41 @@ func (s *Server) loggingMiddleware(next http.Handler) http.Handler {
 		if s.config.Logging == "debug" {
 			s.logger.Printf("Request completed in %v", time.Since(start))
 		}
+	})
+}
+
+// adds CORS headers and handles preflight OPTIONS requests from browsers in the
+// case of webirc: https://ircv3.net/specs/extensions/webirc
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if len(s.config.CORSAllowedOrigins) == 0 {
+			next.ServeHTTP(w, r)
+			return
+		}
+		origin := r.Header.Get("Origin")
+		if origin == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		if !slices.Contains(s.config.CORSAllowedOrigins, origin) {
+			next.ServeHTTP(w, r)
+			return
+		}
+
+		w.Header().Set("Access-Control-Allow-Origin", origin)
+		w.Header().Set("Access-Control-Allow-Credentials", "true")  // allow sending Authorization header for request
+		w.Header().Set("Access-Control-Expose-Headers", "Location") // allow location to be read
+		w.Header().Add("Vary", "Origin")
+
+		if r.Method == http.MethodOptions {
+			w.Header().Set("Access-Control-Allow-Methods", "GET, HEAD, POST, OPTIONS")
+			if reqHeaders := r.Header.Get("Access-Control-Request-Headers"); reqHeaders != "" {
+				w.Header().Set("Access-Control-Allow-Headers", reqHeaders)
+			}
+		}
+
+		next.ServeHTTP(w, r)
 	})
 }
 
