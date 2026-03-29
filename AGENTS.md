@@ -208,3 +208,4 @@ This implementation follows the [draft/FILEHOST specification](~/trash/filehost.
 - No external dependencies beyond `gopkg.in/yaml.v2`
 - `config.yaml` is the example file - use `test_config.yaml` for local testing
 - The `custime` package extends Go's duration parser for human-readable intervals
+- When reviewing branches, ignore the cleanliness of the individual commits and their messages, since we use a squash workflow
